@@ -1,0 +1,6 @@
+# Override APENAS para testar diretamente no servidor via porta loopback.
+# Nao adicione este arquivo no Compose escolhido pelo Coolify.
+services:
+  firecrawl:
+    ports:
+      - '127.0.0.1:3002:3002'

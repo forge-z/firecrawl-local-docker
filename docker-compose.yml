@@ -1,0 +1,44 @@
+services:
+  firecrawl:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        FIRECRAWL_REF: ${FIRECRAWL_REF:-d339a06385844136521b85b9300f0953da67a67a}
+    restart: unless-stopped
+    init: true
+    environment:
+      TZ: America/Sao_Paulo
+      # Obrigatorio: o token protege TODAS as rotas, inclusive /health.
+      FIRECRAWL_LOCAL_TOKEN: ${FIRECRAWL_LOCAL_TOKEN:?Defina FIRECRAWL_LOCAL_TOKEN}
+      # Opcional: dominio permitido no header Host (sem https://).
+      FIRECRAWL_ALLOWED_HOST: ${FIRECRAWL_ALLOWED_HOST:-}
+      # O Coolify reconhece este nome para gerar/configurar um dominio
+      # apontando para a porta interna 3002.
+      SERVICE_FQDN_FIRECRAWL_3002: ${SERVICE_FQDN_FIRECRAWL_3002:-}
+      FIRECRAWL_CLOUD: "off"
+      FIRECRAWL_LOCAL_BROWSER: "auto"
+      FIRECRAWL_LOCAL_SCROLL: ${FIRECRAWL_LOCAL_SCROLL:-false}
+      FIRECRAWL_CHROME_PATH: /usr/bin/chromium
+    expose:
+      - "3002"
+    # SEM ports publicos: Coolify publica apenas atraves do proxy HTTPS.
+    # Habilite o mapeamento 127.0.0.1:3002:3002 somente para testes locais.
+    shm_size: "512mb"
+    mem_limit: "2g"
+    pids_limit: 256
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+      # Perfil oficial do Playwright, sem desativar todo o seccomp.
+      # O arquivo deve existir no contexto do docker-compose.
+      - seccomp=./seccomp_profile.json
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'curl -fsS -H "Authorization: Bearer $$FIRECRAWL_LOCAL_TOKEN" http://127.0.0.1:3002/health >/dev/null'
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
